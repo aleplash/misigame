@@ -20,12 +20,12 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // Загрузка лиц героев
+        // Загрузка лиц героев (новые короткие названия)
         const maksimImg = new Image();
-        maksimImg.src = '2026-11-19 18.17.29.jpg'; // Фото Максима
+        maksimImg.src = 'maksim.jpg'; 
 
         const yanaImg = new Image();
-        yanaImg.src = '2026-11-19 18.17.59.jpg'; // Фото Яны
+        yanaImg.src = 'yana.jpg';
 
         let gameState = 'playing'; 
 
@@ -54,3 +54,107 @@
             if (keys['ArrowLeft']) player.dx = -player.speed;
             else if (keys['ArrowRight']) player.dx = player.speed;
             else player.dx = 0;
+
+            if ((keys['Space'] || keys['ArrowUp']) && player.grounded) {
+                player.dy = player.jump;
+                player.grounded = false;
+            }
+
+            player.dy += gravity;
+            player.x += player.dx;
+            player.y += player.dy;
+
+            // Столкновения с платформами
+            player.grounded = false;
+            for (let p of platforms) {
+                if (player.x < p.x + p.w && player.x + player.width > p.x &&
+                    player.y < p.y + p.h && player.y + player.height > p.y) {
+                    if (player.dy > 0 && player.y + player.height - player.dy <= p.y) {
+                        player.grounded = true;
+                        player.dy = 0;
+                        player.y = p.y - player.height;
+                    }
+                }
+            }
+
+            // Ограничения экрана
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+
+            // Движение дракона
+            dragon.x += dragon.dx;
+            if (dragon.x < 200 || dragon.x > 600) dragon.dx *= -1;
+
+            // Проверка проигрыша
+            if (player.x < dragon.x + dragon.w && player.x + player.width > dragon.x &&
+                player.y < dragon.y + dragon.h && player.y + player.height > dragon.y) {
+                gameState = 'lose';
+            }
+
+            // Проверка победы
+            if (player.x < princess.x + princess.w && player.x + player.width > princess.x &&
+                player.y < princess.y + princess.h && player.y + player.height > princess.y) {
+                gameState = 'win';
+            }
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Платформы
+            ctx.fillStyle = '#654321';
+            for (let p of platforms) ctx.fillRect(p.x, p.y, p.w, p.h);
+
+            // Яна с проверкой загрузки
+            if (yanaImg.complete && yanaImg.naturalWidth !== 0) {
+                ctx.drawImage(yanaImg, princess.x, princess.y, princess.w, princess.h);
+            } else {
+                ctx.fillStyle = 'pink';
+                ctx.fillRect(princess.x, princess.y, princess.w, princess.h);
+            }
+            ctx.fillStyle = 'black';
+            ctx.font = '14px Arial';
+            ctx.fillText('Яна', princess.x + 5, princess.y - 10);
+
+            // Дракон SanyaLoh
+            ctx.font = '35px Arial';
+            ctx.fillText('🐉', dragon.x, dragon.y + 35);
+            ctx.fillStyle = 'darkred';
+            ctx.font = '14px Arial';
+            ctx.fillText('SanyaLoh', dragon.x - 15, dragon.y - 10);
+
+            // Максим с проверкой загрузки
+            if (maksimImg.complete && maksimImg.naturalWidth !== 0) {
+                ctx.drawImage(maksimImg, player.x, player.y, player.width, player.height);
+            } else {
+                ctx.fillStyle = 'blue';
+                ctx.fillRect(player.x, player.y, player.width, player.height);
+            }
+
+            // Сообщения
+            if (gameState === 'win') {
+                ctx.fillStyle = 'rgba(0, 200, 0, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '40px Arial';
+                ctx.fillText('Победа! Максим спас Яну!', 160, 200);
+            } else if (gameState === 'lose') {
+                ctx.fillStyle = 'rgba(200, 0, 0, 0.8)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = 'white';
+                ctx.font = '40px Arial';
+                ctx.fillText('SanyaLoh съел Максима!', 180, 200);
+            }
+        }
+
+        function loop() {
+            update();
+            draw();
+            requestAnimationFrame(loop);
+        }
+
+        // Старт игры
+        window.onload = loop;
+    </script>
+</body>
+</html>
